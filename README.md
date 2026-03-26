@@ -1,6 +1,6 @@
 # Outcome - Flight Prediction Market on Stellar
 
-Outcome is a decentralized flight prediction market built on the Stellar network. It allows users to speculate on flight outcomes (e.g., delays, cancellations) using a transparent and trustless blockchain infrastructure, enhanced by institutional-grade AI analysis.
+Outcome is a decentralized flight prediction market built on the Stellar network. It allows users to speculate on flight outcomes (e.g., delays, cancellations) using a transparent and trustless blockchain infrastructure, enhanced by institutional-grade AI analysis..
 
 ## 🌟 Features
 
