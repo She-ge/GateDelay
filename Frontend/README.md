@@ -1,87 +1,36 @@
-# Outcome - Flight Prediction Market on Stellar
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-Outcome is a decentralized flight prediction market built on the Stellar network. It allows users to speculate on flight outcomes (e.g., delays, cancellations) using a transparent and trustless blockchain infrastructure, enhanced by institutional-grade AI analysis..
+## Getting Started
 
-## 🌟 Features
-
-- **Prediction Markets**: Participate in decentralized markets for flight arrival status.
-- **AI Risk Assessment**: Integrated Llama 3.1 analysis via **Groq** for real-time trading signals and flight risk reports.
-- **Real-time Aviation Data**: Automated flight tracking and market initialization powered by the **AviationStack API**.
-- **Hybrid AMM**: Sophisticated Logarithmic Market Scoring Rule (LMSR) for liquidity pricing, paired with a fair cost-based payout mechanism.
-- **Mantle Network**: High-performance, low-fee trading secured by Ethereum.
-- **Connect with Ease**: Seamless wallet integration via **Particle Network**, supporting both social and traditional EOA logins.
-
-## 🛠 Tech Stack
-
-- **Smart Contracts**:
-  - Solidity 0.8.20
-  - Foundry (Development & Testing)
-  - PRBMath (Numerical Stability for AMM)
-- **Frontend**:
-  - Next.js 16 (Turbopack)
-  - TypeScript & TailwindCSS
-  - **Groq SDK**: AI analysis engine (Llama 3.1 8B/70B)
-  - **Particle Network**: Universal wallet connection
-  - **Recharts & Framer Motion**: Dynamic market visualization and premium UI animations
-  - Wagmi & Viem: Type-safe Ethereum interactions
-
-## 📋 Prerequisites
-
-- [Node.js](https://nodejs.org/) (v18+ recommended)
-- [Foundry](https://getfoundry.sh/) (Forge, Cast, Anvil)
-- [Git](https://git-scm.com/)
-
-## 🚀 Getting Started
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/Jemiiah/outcome.git
-cd outcome
-```
-
-### 2. Smart Contracts
-
-```bash
-cd contract
-forge build
-# Run tests
-forge test
-```
-
-### 3. Frontend
-
-```bash
-cd frontend
-npm install
-```
-
-**Environment Setup:**
-Create a `.env` file in the `frontend` directory:
-
-```env
-# Particle Network ConnectKit
-NEXT_PUBLIC_PROJECT_ID=your_id
-NEXT_PUBLIC_CLIENT_KEY=your_key
-NEXT_PUBLIC_APP_ID=your_id
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_id
-
-# AI & Data
-GROQ_API_KEY=your_groq_api_key
-NEXT_PUBLIC_AVIATION_STACK_KEY=your_aviationstack_key
-```
-
-**Run Development Server:**
+First, run the development server:
 
 ```bash
 npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-## 📂 Project Structure
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-- `contract/`: Solidity contracts, Foundry tests, and deployment scripts.
-- `frontend/`: Next.js application, AI routes, and Web3 components.
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-## 📜 License
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-[MIT](LICENSE)
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
