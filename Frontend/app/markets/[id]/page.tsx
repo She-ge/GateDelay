@@ -73,14 +73,9 @@ export default function MarketDetailPage({ params }: { params: { id: string } })
       </div>
       </Suspense>
 
-      {/* Chart placeholder */}
-      <Suspense fallback={<ChartSkeleton height={192} />}>
-      <div
-        className="rounded-xl p-6 flex items-center justify-center h-48"
-        style={{ background: "var(--card)", border: "1px solid var(--border)" }}
-      >
-        <p className="text-sm" style={{ color: "var(--muted)" }}>Price chart coming soon</p>
-      </div>
+      {/* Price chart */}
+      <Suspense fallback={<ChartSkeleton height={300} />}>
+        <PriceChart />
       </Suspense>
 
       {/* Trading interface + Recent trades */}
