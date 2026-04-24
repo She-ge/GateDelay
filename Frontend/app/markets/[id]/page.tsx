@@ -1,6 +1,7 @@
 "use client";
 import { useState, Suspense } from "react";
 import { StatsSkeleton, ChartSkeleton } from "../../components/ui/Skeleton";
+import PriceChart from "../../../components/chart/PriceChart";
 
 // Mock data — replace with real contract/API calls
 const MOCK_MARKET = {
@@ -76,14 +77,9 @@ export default function MarketDetailPage({ params }: { params: { id: string } })
       </div>
       </Suspense>
 
-      {/* Chart placeholder */}
-      <Suspense fallback={<ChartSkeleton height={192} />}>
-      <div
-        className="rounded-xl p-6 flex items-center justify-center h-48"
-        style={{ background: "var(--card)", border: "1px solid var(--border)" }}
-      >
-        <p className="text-sm" style={{ color: "var(--muted)" }}>Price chart coming soon</p>
-      </div>
+      {/* Price chart */}
+      <Suspense fallback={<ChartSkeleton height={300} />}>
+        <PriceChart />
       </Suspense>
 
       {/* Trading interface + Recent trades */}
