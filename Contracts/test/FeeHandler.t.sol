@@ -1,39 +1,42 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {Test}        from "forge-std/Test.sol";
-import {ERC20}       from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {FeeHandler}  from "../contracts/FeeHandler.sol";
+import {Test} from "forge-std/Test.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {FeeHandler} from "../contracts/FeeHandler.sol";
 
 // ─── Mock ERC20 ────────────────────────────────────────────────────────────────
 
 contract MockERC20 is ERC20 {
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
-    function mint(address to, uint256 amount) external { _mint(to, amount); }
+
+    function mint(address to, uint256 amount) external {
+        _mint(to, amount);
+    }
 }
 
 // ─── FeeHandlerTest ────────────────────────────────────────────────────────────
 
 contract FeeHandlerTest is Test {
     // ── Actors ────────────────────────────────────────────────────────────────
-    address alice   = makeAddr("alice");
-    address bob     = makeAddr("bob");
+    address alice = makeAddr("alice");
+    address bob = makeAddr("bob");
     address charlie = makeAddr("charlie");
-    address payer   = makeAddr("payer");
+    address payer = makeAddr("payer");
 
     // ── Contracts ─────────────────────────────────────────────────────────────
     FeeHandler handler;
-    MockERC20  token;
+    MockERC20 token;
 
     // ── Fee structure ids ─────────────────────────────────────────────────────
-    bytes32 constant TRADING    = keccak256("TRADING");
+    bytes32 constant TRADING = keccak256("TRADING");
     bytes32 constant WITHDRAWAL = keccak256("WITHDRAWAL");
 
     // ── Setup ─────────────────────────────────────────────────────────────────
 
     function setUp() public {
         handler = new FeeHandler();
-        token   = new MockERC20("Test Token", "TT");
+        token = new MockERC20("Test Token", "TT");
 
         token.mint(payer, 1_000_000 ether);
         vm.prank(payer);
@@ -51,7 +54,7 @@ contract FeeHandlerTest is Test {
     function _split5050(bytes32 id, uint256 feeBps) internal {
         FeeHandler.FeeRecipient[] memory r = new FeeHandler.FeeRecipient[](2);
         r[0] = FeeHandler.FeeRecipient({account: alice, shareBps: 5_000});
-        r[1] = FeeHandler.FeeRecipient({account: bob,   shareBps: 5_000});
+        r[1] = FeeHandler.FeeRecipient({account: bob, shareBps: 5_000});
         handler.setFeeStructure(id, feeBps, r);
     }
 
@@ -60,8 +63,7 @@ contract FeeHandlerTest is Test {
     function test_setFeeStructure_ownerCanCreate() public {
         _single(TRADING, 30, alice);
 
-        (uint256 feeBps, bool active, FeeHandler.FeeRecipient[] memory r) =
-            handler.getFeeStructure(TRADING);
+        (uint256 feeBps, bool active, FeeHandler.FeeRecipient[] memory r) = handler.getFeeStructure(TRADING);
 
         assertEq(feeBps, 30);
         assertTrue(active);
@@ -80,7 +82,7 @@ contract FeeHandlerTest is Test {
     function test_setFeeStructure_revertsOnInvalidShareSum() public {
         FeeHandler.FeeRecipient[] memory r = new FeeHandler.FeeRecipient[](2);
         r[0] = FeeHandler.FeeRecipient({account: alice, shareBps: 4_000});
-        r[1] = FeeHandler.FeeRecipient({account: bob,   shareBps: 4_000}); // sum = 8 000
+        r[1] = FeeHandler.FeeRecipient({account: bob, shareBps: 4_000}); // sum = 8 000
         vm.expectRevert(FeeHandler.InvalidRecipients.selector);
         handler.setFeeStructure(TRADING, 30, r);
     }
@@ -104,7 +106,7 @@ contract FeeHandlerTest is Test {
         _single(TRADING, 30, alice);
         _split5050(TRADING, 50);
 
-        (, , FeeHandler.FeeRecipient[] memory r) = handler.getFeeStructure(TRADING);
+        (,, FeeHandler.FeeRecipient[] memory r) = handler.getFeeStructure(TRADING);
         assertEq(r.length, 2);
         assertEq(r[0].account, alice);
         assertEq(r[1].account, bob);
@@ -119,10 +121,10 @@ contract FeeHandlerTest is Test {
     }
 
     function test_calculateFee_multipleStructures() public {
-        _single(TRADING,    30, alice); // 0.30 %
-        _single(WITHDRAWAL, 50, bob);   // 0.50 %
+        _single(TRADING, 30, alice); // 0.30 %
+        _single(WITHDRAWAL, 50, bob); // 0.50 %
 
-        assertEq(handler.calculateFee(10_000 ether, TRADING),    30 ether);
+        assertEq(handler.calculateFee(10_000 ether, TRADING), 30 ether);
         assertEq(handler.calculateFee(10_000 ether, WITHDRAWAL), 50 ether);
     }
 
@@ -152,13 +154,13 @@ contract FeeHandlerTest is Test {
 
         // fee = 100 ether split 50 / 50
         assertEq(token.balanceOf(alice), 50 ether);
-        assertEq(token.balanceOf(bob),   50 ether);
+        assertEq(token.balanceOf(bob), 50 ether);
     }
 
     function test_collectAndDistribute_threeRecipients() public {
         FeeHandler.FeeRecipient[] memory r = new FeeHandler.FeeRecipient[](3);
-        r[0] = FeeHandler.FeeRecipient({account: alice,   shareBps: 5_000}); // 50 %
-        r[1] = FeeHandler.FeeRecipient({account: bob,     shareBps: 3_000}); // 30 %
+        r[0] = FeeHandler.FeeRecipient({account: alice, shareBps: 5_000}); // 50 %
+        r[1] = FeeHandler.FeeRecipient({account: bob, shareBps: 3_000}); // 30 %
         r[2] = FeeHandler.FeeRecipient({account: charlie, shareBps: 2_000}); // 20 %
         handler.setFeeStructure(TRADING, 100, r); // 1 %
 
@@ -166,8 +168,8 @@ contract FeeHandlerTest is Test {
         handler.collectAndDistribute(address(token), 10_000 ether, TRADING);
 
         // fee = 100 ether
-        assertEq(token.balanceOf(alice),   50 ether);
-        assertEq(token.balanceOf(bob),     30 ether);
+        assertEq(token.balanceOf(alice), 50 ether);
+        assertEq(token.balanceOf(bob), 30 ether);
         assertEq(token.balanceOf(charlie), 20 ether);
     }
 
@@ -215,25 +217,25 @@ contract FeeHandlerTest is Test {
         handler.collectAndDistribute(address(token), 10_000 ether, TRADING); // fee = 30
 
         vm.prank(payer);
-        handler.collectAndDistribute(address(token), 5_000 ether, TRADING);  // fee = 15
+        handler.collectAndDistribute(address(token), 5_000 ether, TRADING); // fee = 15
 
         assertEq(handler.getCollectedFees(TRADING, address(token)), 45 ether);
-        assertEq(handler.getTotalCollectedFees(address(token)),      45 ether);
+        assertEq(handler.getTotalCollectedFees(address(token)), 45 ether);
     }
 
     function test_tracking_separateByStructure() public {
-        _single(TRADING,    30, alice);
+        _single(TRADING, 30, alice);
         _single(WITHDRAWAL, 50, bob);
 
         vm.prank(payer);
-        handler.collectAndDistribute(address(token), 10_000 ether, TRADING);    // fee = 30
+        handler.collectAndDistribute(address(token), 10_000 ether, TRADING); // fee = 30
 
         vm.prank(payer);
-        handler.collectAndDistribute(address(token), 2_000 ether, WITHDRAWAL);  // fee = 10
+        handler.collectAndDistribute(address(token), 2_000 ether, WITHDRAWAL); // fee = 10
 
-        assertEq(handler.getCollectedFees(TRADING,    address(token)), 30 ether);
+        assertEq(handler.getCollectedFees(TRADING, address(token)), 30 ether);
         assertEq(handler.getCollectedFees(WITHDRAWAL, address(token)), 10 ether);
-        assertEq(handler.getTotalCollectedFees(address(token)),         40 ether);
+        assertEq(handler.getTotalCollectedFees(address(token)), 40 ether);
     }
 
     // ── Deactivation ──────────────────────────────────────────────────────────
@@ -269,7 +271,7 @@ contract FeeHandlerTest is Test {
 
     function testFuzz_calculateFee_neverExceedsGross(uint256 gross, uint256 feeBps) public {
         feeBps = bound(feeBps, 1, handler.MAX_FEE_BPS());
-        gross  = bound(gross, 1, type(uint128).max);
+        gross = bound(gross, 1, type(uint128).max);
 
         _single(TRADING, feeBps, alice);
         uint256 fee = handler.calculateFee(gross, TRADING);
@@ -281,8 +283,8 @@ contract FeeHandlerTest is Test {
 
         // 3-recipient split: 50 / 30 / 20
         FeeHandler.FeeRecipient[] memory r = new FeeHandler.FeeRecipient[](3);
-        r[0] = FeeHandler.FeeRecipient({account: alice,   shareBps: 5_000});
-        r[1] = FeeHandler.FeeRecipient({account: bob,     shareBps: 3_000});
+        r[0] = FeeHandler.FeeRecipient({account: alice, shareBps: 5_000});
+        r[1] = FeeHandler.FeeRecipient({account: bob, shareBps: 3_000});
         r[2] = FeeHandler.FeeRecipient({account: charlie, shareBps: 2_000});
         handler.setFeeStructure(TRADING, 30, r);
 

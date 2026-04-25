@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {IERC20}          from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20}        from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Ownable}          from "@openzeppelin/contracts/access/Ownable.sol";
-import {ReentrancyGuard}  from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {mulDiv}           from "@prb/math/src/Common.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {mulDiv} from "@prb/math/src/Common.sol";
 
 /**
  * @title  FeeHandler
@@ -30,7 +30,7 @@ contract FeeHandler is Ownable, ReentrancyGuard {
     // ── Constants ──────────────────────────────────────────────────────────────
 
     uint256 public constant BPS_DENOMINATOR = 10_000;
-    uint256 public constant MAX_FEE_BPS     = 1_000; // 10 % ceiling
+    uint256 public constant MAX_FEE_BPS = 1_000; // 10 % ceiling
 
     // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -40,20 +40,20 @@ contract FeeHandler is Ownable, ReentrancyGuard {
     }
 
     struct FeeStructure {
-        uint256        feeBps;
-        bool           active;
+        uint256 feeBps;
+        bool active;
         FeeRecipient[] recipients;
     }
 
     // ── State ──────────────────────────────────────────────────────────────────
 
-    mapping(bytes32 => FeeStructure)                private _structures;
+    mapping(bytes32 => FeeStructure) private _structures;
 
     // structureId => token => cumulative fee amount collected
     mapping(bytes32 => mapping(address => uint256)) private _collected;
 
     // token => cumulative fee amount collected across all structures
-    mapping(address => uint256)                     private _totalCollected;
+    mapping(address => uint256) private _totalCollected;
 
     // ── Events ─────────────────────────────────────────────────────────────────
 
@@ -81,12 +81,8 @@ contract FeeHandler is Ownable, ReentrancyGuard {
      * @param feeBps     Fee rate in basis points. Must be ≤ MAX_FEE_BPS.
      * @param recipients List of recipients; shareBps must sum to BPS_DENOMINATOR.
      */
-    function setFeeStructure(
-        bytes32              id,
-        uint256              feeBps,
-        FeeRecipient[] calldata recipients
-    ) external onlyOwner {
-        if (feeBps > MAX_FEE_BPS)   revert FeeTooHigh();
+    function setFeeStructure(bytes32 id, uint256 feeBps, FeeRecipient[] calldata recipients) external onlyOwner {
+        if (feeBps > MAX_FEE_BPS) revert FeeTooHigh();
         if (recipients.length == 0) revert InvalidRecipients();
 
         uint256 shareSum;
@@ -123,11 +119,7 @@ contract FeeHandler is Ownable, ReentrancyGuard {
      * @param id          Fee structure to apply.
      * @return feeAmount  Fee in the same token units as grossAmount.
      */
-    function calculateFee(uint256 grossAmount, bytes32 id)
-        public
-        view
-        returns (uint256 feeAmount)
-    {
+    function calculateFee(uint256 grossAmount, bytes32 id) public view returns (uint256 feeAmount) {
         if (!_structures[id].active) revert StructureNotActive(id);
         // mulDiv avoids phantom overflow: floor(grossAmount * feeBps / BPS_DENOMINATOR)
         feeAmount = mulDiv(grossAmount, _structures[id].feeBps, BPS_DENOMINATOR);
@@ -145,13 +137,13 @@ contract FeeHandler is Ownable, ReentrancyGuard {
      * @param id          Fee structure to apply.
      * @return feeAmount  Tokens collected and distributed.
      */
-    function collectAndDistribute(
-        address token,
-        uint256 grossAmount,
-        bytes32 id
-    ) external nonReentrant returns (uint256 feeAmount) {
+    function collectAndDistribute(address token, uint256 grossAmount, bytes32 id)
+        external
+        nonReentrant
+        returns (uint256 feeAmount)
+    {
         if (token == address(0)) revert ZeroAddress();
-        if (grossAmount == 0)    revert ZeroAmount();
+        if (grossAmount == 0) revert ZeroAmount();
 
         feeAmount = calculateFee(grossAmount, id);
         if (feeAmount == 0) return 0;
@@ -169,14 +161,10 @@ contract FeeHandler is Ownable, ReentrancyGuard {
      * @param feeAmount  Exact amount to distribute.
      * @param id         Fee structure that defines the recipient split.
      */
-    function distribute(
-        address token,
-        uint256 feeAmount,
-        bytes32 id
-    ) external nonReentrant {
-        if (token == address(0))           revert ZeroAddress();
-        if (feeAmount == 0)                revert ZeroAmount();
-        if (!_structures[id].active)       revert StructureNotActive(id);
+    function distribute(address token, uint256 feeAmount, bytes32 id) external nonReentrant {
+        if (token == address(0)) revert ZeroAddress();
+        if (feeAmount == 0) revert ZeroAmount();
+        if (!_structures[id].active) revert StructureNotActive(id);
         _distribute(token, feeAmount, id);
     }
 
@@ -193,11 +181,7 @@ contract FeeHandler is Ownable, ReentrancyGuard {
     }
 
     /// @notice Cumulative fees collected under a specific structure for a given token.
-    function getCollectedFees(bytes32 id, address token)
-        external
-        view
-        returns (uint256)
-    {
+    function getCollectedFees(bytes32 id, address token) external view returns (uint256) {
         return _collected[id][token];
     }
 
@@ -225,7 +209,7 @@ contract FeeHandler is Ownable, ReentrancyGuard {
             if (share > 0) IERC20(token).safeTransfer(recipients[i].account, share);
         }
 
-        _collected[id][token]  += feeAmount;
+        _collected[id][token] += feeAmount;
         _totalCollected[token] += feeAmount;
 
         emit FeesDistributed(id, token, feeAmount);

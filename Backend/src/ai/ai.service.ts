@@ -64,6 +64,10 @@ export class AiService {
     return analysis;
   }
 
+  async getCachedAnalysis(marketId: string): Promise<MarketAnalysis | null> {
+    return this.cache.get<MarketAnalysis>(`ai:analysis:${marketId}`) ?? null;
+  }
+
   private async fetchFromGroq(dto: AnalysisRequestDto): Promise<MarketAnalysis> {
     const prompt = this.buildPrompt(dto);
 
@@ -107,6 +111,8 @@ export class AiService {
 
 Market title: "${dto.marketTitle}"
 ${dto.marketDescription ? `Description: "${dto.marketDescription}"` : ''}
+${dto.deadline ? `Resolution deadline: ${dto.deadline}` : ''}
+${dto.currentOdds !== undefined ? `Current implied probability (0–1): ${dto.currentOdds}` : ''}
 ${dto.riskTolerance ? `Trader risk tolerance: ${dto.riskTolerance}` : ''}`;
   }
 
