@@ -8,6 +8,7 @@ import { ToastProvider } from "./components/ToastProvider";
 import { WebSocketProvider } from "./components/WebSocketProvider";
 import { PageErrorBoundary } from "./components/ui/PageErrorBoundary";
 import { GlobalErrorHandler } from "./components/GlobalErrorHandler";
+import PendingTransactions from "../components/transactions/PendingTransactions";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <WebSocketProvider>
                   <Navbar />
                   <div className="flex-1">{children}</div>
+                  <PendingTransactions />
                 </WebSocketProvider>
               </ParticleClientWrapper>
             </ToastProvider>

@@ -13,6 +13,10 @@ import { PositionsModule } from './positions/positions.module';
 import { SearchModule } from './search/search.module';
 import { PortfolioModule } from './portfolio/portfolio.module';
 import { AiModule } from './ai/ai.module';
+import { MarketsModule } from './markets/markets.module';
+import { WalletModule } from './wallet/wallet.module';
+import { GasModule } from './gas/gas.module';
+import { TradingHistoryModule } from './trading-history/trading-history.module';
 import { createKeyv } from '@keyv/redis';
 
 @Module({
@@ -40,8 +44,12 @@ import { createKeyv } from '@keyv/redis';
     SearchModule,
     PortfolioModule,
     AiModule,
+    MarketsModule,
+    WalletModule,
+    GasModule,
+    TradingHistoryModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

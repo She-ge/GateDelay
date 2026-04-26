@@ -7,6 +7,7 @@ import TradeConfirmation from "../../../components/trade/TradeConfirmation";
 import LiquidityDisplay from "../../../components/market/LiquidityDisplay";
 import { useAccount } from "wagmi";
 import PriceChart from "../../components/chart/PriceChart";
+import LiquidityChart from "../../../components/chart/LiquidityChart";
 import GasEstimator, { type GasSpeed, type GasEstimate } from "../../../components/gas/GasEstimator";
 import AnalysisPanel from "../../../components/ai/AnalysisPanel";
 
@@ -101,6 +102,10 @@ export default function MarketDetailPage({ params }: { params: { id: string } })
       {/* Price chart */}
       <Suspense fallback={<ChartSkeleton height={300} />}>
         <PriceChart />
+      </Suspense>
+
+      <Suspense fallback={<ChartSkeleton height={420} />}>
+        <LiquidityChart marketTitle={market.title} />
       </Suspense>
 
       {/* Liquidity display */}
