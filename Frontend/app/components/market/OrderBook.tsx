@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
-import { io, Socket } from 'socket.io-client';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
+import { useSinglePriceUpdate } from '@/hooks/usePriceUpdates';
+import PriceDisplay from './PriceDisplay';
 
 interface Order {
   price: number;
@@ -18,10 +19,10 @@ interface OrderBookProps {
 export default function OrderBook({ marketId, userAddress }: OrderBookProps) {
   const [bids, setBids] = useState<Order[]>([]);
   const [asks, setAsks] = useState<Order[]>([]);
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const { price, isConnected } = useSinglePriceUpdate(marketId);
 
   useEffect(() => {
-    // Mock data for now
+    // Mock data for now - in production, this would come from WebSocket orderBookUpdate events
     const mockBids: Order[] = [
       { price: 0.95, quantity: 100, user: '0x123' },
       { price: 0.94, quantity: 200, user: '0x456' },
@@ -37,22 +38,15 @@ export default function OrderBook({ marketId, userAddress }: OrderBookProps) {
     setBids(mockBids);
     setAsks(mockAsks);
 
-    // TODO: Connect to WebSocket
-    // const newSocket = io('http://localhost:3000/prices', {
-    //   auth: { token: 'user-token' }, // Get token from auth context
-    // });
-    // newSocket.emit('subscribe', { marketIds: [marketId] });
-    // newSocket.on('orderBookUpdate', (data) => {
+    // Note: Real-time price updates are now handled by useSinglePriceUpdate hook
+    // For order book updates, you would add a similar pattern:
+    // const unsubscribe = websocket.on('orderBookUpdate', (data) => {
     //   if (data.marketId === marketId) {
     //     setBids(data.bids);
     //     setAsks(data.asks);
     //   }
     // });
-    // setSocket(newSocket);
-
-    // return () => {
-    //   newSocket?.disconnect();
-    // };
+    // return unsubscribe;
   }, [marketId]);
 
   const depthData = useMemo(() => {
@@ -89,9 +83,8 @@ export default function OrderBook({ marketId, userAddress }: OrderBookProps) {
         {orders.map((order, index) => (
           <div
             key={index}
-            className={`flex items-center justify-between p-2 rounded ${
-              order.user === userAddress ? 'bg-blue-100 border border-blue-300' : 'bg-gray-50'
-            }`}
+            className={`flex items-center justify-between p-2 rounded ${order.user === userAddress ? 'bg-blue-100 border border-blue-300' : 'bg-gray-50'
+              }`}
           >
             <span className="font-mono text-sm">{order.price.toFixed(4)}</span>
             <span className="font-mono text-sm">{order.quantity}</span>
@@ -109,7 +102,17 @@ export default function OrderBook({ marketId, userAddress }: OrderBookProps) {
 
   return (
     <div className="bg-white p-4 rounded-lg shadow">
-      <h2 className="text-xl font-bold mb-4">Order Book</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold">Order Book</h2>
+        <div className="flex items-center space-x-2">
+          <PriceDisplay marketId={marketId} size="md" showChange showVolume />
+          {!isConnected && (
+            <span className="text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
+              Offline Mode
+            </span>
+          )}
+        </div>
+      </div>
       <div className="flex space-x-4 mb-4">
         {renderOrderTable(bids.sort((a, b) => b.price - a.price), true)}
         {renderOrderTable(asks.sort((a, b) => a.price - b.price), false)}

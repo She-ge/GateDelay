@@ -5,6 +5,9 @@ import { ThemeProvider } from "./components/ThemeProvider";
 import { ParticleClientWrapper } from "./components/ParticleClientWrapper";
 import Navbar from "./components/Navbar";
 import { ToastProvider } from "./components/ToastProvider";
+import { WebSocketProvider } from "./components/WebSocketProvider";
+import { PageErrorBoundary } from "./components/ui/PageErrorBoundary";
+import { GlobalErrorHandler } from "./components/GlobalErrorHandler";
 import PendingTransactions from "../components/transactions/PendingTransactions";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -19,15 +22,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        <ThemeProvider>
-          <ToastProvider>
-            <ParticleClientWrapper>
-              <Navbar />
-              <div className="flex-1">{children}</div>
-              <PendingTransactions />
-            </ParticleClientWrapper>
-          </ToastProvider>
-        </ThemeProvider>
+        <PageErrorBoundary>
+          <ThemeProvider>
+            <ToastProvider>
+              <GlobalErrorHandler />
+              <ParticleClientWrapper>
+                <WebSocketProvider>
+                  <Navbar />
+                  <div className="flex-1">{children}</div>
+                  <PendingTransactions />
+                </WebSocketProvider>
+              </ParticleClientWrapper>
+            </ToastProvider>
+          </ThemeProvider>
+        </PageErrorBoundary>
       </body>
     </html>
   );
