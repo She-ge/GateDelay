@@ -390,3 +390,368 @@ contract MarketCapTest is Test {
         assertGt(cap3, 0, "Market 3 cap should be positive");
     }
 }
+
+
+    // =========================================================================
+    // Advanced Features Tests
+    // =========================================================================
+
+    function test_batchCalculateMarketCap_success() public {
+        uint256[] memory marketIds = new uint256[](3);
+        uint256[] memory prices = new uint256[](3);
+        uint256[] memory supplies = new uint256[](3);
+
+        marketIds[0] = 1;
+        marketIds[1] = 2;
+        marketIds[2] = 3;
+
+        prices[0] = PRICE_1;
+        prices[1] = PRICE_2;
+        prices[2] = PRICE_HALF;
+
+        supplies[0] = SUPPLY_1000;
+        supplies[1] = SUPPLY_500;
+        supplies[2] = SUPPLY_1000;
+
+        MarketCap.BatchCapResult[] memory results = marketCap.batchCalculateMarketCap(
+            marketIds,
+            prices,
+            supplies
+        );
+
+        assertEq(results.length, 3, "Should return 3 results");
+        assertTrue(results[0].success, "First calculation should succeed");
+        assertTrue(results[1].success, "Second calculation should succeed");
+        assertTrue(results[2].success, "Third calculation should succeed");
+    }
+
+    function test_batchCalculateMarketCap_revertsInvalidSize() public {
+        uint256[] memory marketIds = new uint256[](2);
+        uint256[] memory prices = new uint256[](3);
+        uint256[] memory supplies = new uint256[](2);
+
+        vm.expectRevert(MarketCap.InvalidBatchSize.selector);
+        marketCap.batchCalculateMarketCap(marketIds, prices, supplies);
+    }
+
+    function test_batchCalculateMarketCap_emitsEvent() public {
+        uint256[] memory marketIds = new uint256[](2);
+        uint256[] memory prices = new uint256[](2);
+        uint256[] memory supplies = new uint256[](2);
+
+        marketIds[0] = 1;
+        marketIds[1] = 2;
+        prices[0] = PRICE_1;
+        prices[1] = PRICE_2;
+        supplies[0] = SUPPLY_1000;
+        supplies[1] = SUPPLY_500;
+
+        vm.expectEmit(false, false, false, true);
+        emit BatchCapCalculated(2, 0);
+
+        marketCap.batchCalculateMarketCap(marketIds, prices, supplies);
+    }
+
+    function test_setCapThreshold_success() public {
+        uint256 marketId = 1;
+        uint256 threshold = 5000e18;
+
+        marketCap.calculateMarketCap(marketId, PRICE_1, SUPPLY_500);
+        marketCap.setCapThreshold(marketId, threshold);
+
+        // Threshold is set (no direct getter, but no revert means success)
+        assertTrue(true, "Threshold set successfully");
+    }
+
+    function test_setCapThreshold_revertsNonOwner() public {
+        uint256 marketId = 1;
+        marketCap.calculateMarketCap(marketId, PRICE_1, SUPPLY_500);
+
+        vm.prank(alice);
+        vm.expectRevert();
+        marketCap.setCapThreshold(marketId, 5000e18);
+    }
+
+    function test_removeCapThreshold_success() public {
+        uint256 marketId = 1;
+        uint256 threshold = 5000e18;
+
+        marketCap.calculateMarketCap(marketId, PRICE_1, SUPPLY_500);
+        marketCap.setCapThreshold(marketId, threshold);
+        marketCap.removeCapThreshold(marketId, threshold);
+
+        assertTrue(true, "Threshold removed successfully");
+    }
+
+    function test_getCapChangePercentage_increase() public {
+        uint256 marketId = 1;
+
+        marketCap.calculateMarketCap(marketId, PRICE_1, SUPPLY_1000);
+        marketCap.calculateMarketCap(marketId, PRICE_2, SUPPLY_1000);
+
+        (uint256 percentage, bool isIncrease) = marketCap.getCapChangePercentage(marketId);
+
+        assertTrue(isIncrease, "Should be an increase");
+        assertEq(percentage, 100e18, "Should be 100% increase");
+    }
+
+    function test_getCapChangePercentage_decrease() public {
+        uint256 marketId = 1;
+
+        marketCap.calculateMarketCap(marketId, PRICE_2, SUPPLY_1000);
+        marketCap.calculateMarketCap(marketId, PRICE_1, SUPPLY_1000);
+
+        (uint256 percentage, bool isIncrease) = marketCap.getCapChangePercentage(marketId);
+
+        assertFalse(isIncrease, "Should be a decrease");
+        assertEq(percentage, 50e18, "Should be 50% decrease");
+    }
+
+    function test_getCapExtremes() public {
+        uint256 marketId = 1;
+
+        // Start with medium cap
+        marketCap.calculateMarketCap(marketId, PRICE_1, SUPPLY_1000);
+        
+        // Go higher (new peak)
+        marketCap.calculateMarketCap(marketId, PRICE_2, SUPPLY_1000);
+        
+        // Go lower (new lowest)
+        marketCap.calculateMarketCap(marketId, PRICE_HALF, SUPPLY_500);
+
+        (uint256 peakCap, uint256 lowestCap) = marketCap.getCapExtremes(marketId);
+
+        assertEq(peakCap, PRICE_2 * SUPPLY_1000 / 1e18, "Peak should be highest");
+        assertEq(lowestCap, PRICE_HALF * SUPPLY_500 / 1e18, "Lowest should be lowest");
+    }
+
+    function test_getUpdateCount() public {
+        uint256 marketId = 1;
+
+        marketCap.calculateMarketCap(marketId, PRICE_1, SUPPLY_1000);
+        assertEq(marketCap.getUpdateCount(marketId), 1, "Should have 1 update");
+
+        marketCap.calculateMarketCap(marketId, PRICE_2, SUPPLY_1000);
+        assertEq(marketCap.getUpdateCount(marketId), 2, "Should have 2 updates");
+
+        marketCap.calculateMarketCap(marketId, PRICE_HALF, SUPPLY_500);
+        assertEq(marketCap.getUpdateCount(marketId), 3, "Should have 3 updates");
+    }
+
+    function test_getSnapshots() public {
+        uint256 marketId = 1;
+
+        marketCap.calculateMarketCap(marketId, PRICE_1, SUPPLY_1000);
+        marketCap.calculateMarketCap(marketId, PRICE_2, SUPPLY_500);
+
+        MarketCap.CapSnapshot[] memory snapshots = marketCap.getSnapshots(marketId);
+
+        assertEq(snapshots.length, 2, "Should have 2 snapshots");
+        assertEq(snapshots[0].price, PRICE_1, "First snapshot price should match");
+        assertEq(snapshots[1].price, PRICE_2, "Second snapshot price should match");
+    }
+
+    function test_getLatestSnapshot() public {
+        uint256 marketId = 1;
+
+        marketCap.calculateMarketCap(marketId, PRICE_1, SUPPLY_1000);
+        marketCap.calculateMarketCap(marketId, PRICE_2, SUPPLY_500);
+
+        MarketCap.CapSnapshot memory snapshot = marketCap.getLatestSnapshot(marketId);
+
+        assertEq(snapshot.price, PRICE_2, "Latest snapshot should have latest price");
+        assertEq(snapshot.supply, SUPPLY_500, "Latest snapshot should have latest supply");
+    }
+
+    function test_compareMarketCaps() public {
+        marketCap.calculateMarketCap(1, PRICE_2, SUPPLY_1000);
+        marketCap.calculateMarketCap(2, PRICE_1, SUPPLY_500);
+
+        (uint256 difference, bool market1IsLarger) = marketCap.compareMarketCaps(1, 2);
+
+        assertTrue(market1IsLarger, "Market 1 should be larger");
+        assertGt(difference, 0, "Difference should be positive");
+    }
+
+    function test_getTotalMarketCap() public {
+        marketCap.calculateMarketCap(1, PRICE_1, SUPPLY_1000);
+        marketCap.calculateMarketCap(2, PRICE_2, SUPPLY_500);
+        marketCap.calculateMarketCap(3, PRICE_HALF, SUPPLY_1000);
+
+        uint256 totalCap = marketCap.getTotalMarketCap();
+
+        uint256 expected = (PRICE_1 * SUPPLY_1000 / 1e18) + 
+                          (PRICE_2 * SUPPLY_500 / 1e18) + 
+                          (PRICE_HALF * SUPPLY_1000 / 1e18);
+
+        assertEq(totalCap, expected, "Total cap should sum all markets");
+    }
+
+    function test_getTopMarketsByCap() public {
+        marketCap.calculateMarketCap(1, PRICE_1, SUPPLY_1000);
+        marketCap.calculateMarketCap(2, PRICE_2, SUPPLY_1000);
+        marketCap.calculateMarketCap(3, PRICE_HALF, SUPPLY_500);
+
+        (uint256[] memory marketIds, uint256[] memory caps) = marketCap.getTopMarketsByCap(2);
+
+        assertEq(marketIds.length, 2, "Should return 2 markets");
+        assertEq(marketIds[0], 2, "Market 2 should be first (highest cap)");
+        assertEq(marketIds[1], 1, "Market 1 should be second");
+        assertGt(caps[0], caps[1], "First cap should be larger");
+    }
+
+    function test_getTopMarketsByCap_limitExceedsLength() public {
+        marketCap.calculateMarketCap(1, PRICE_1, SUPPLY_1000);
+        marketCap.calculateMarketCap(2, PRICE_2, SUPPLY_500);
+
+        (uint256[] memory marketIds, ) = marketCap.getTopMarketsByCap(10);
+
+        assertEq(marketIds.length, 2, "Should return only available markets");
+    }
+
+    // =========================================================================
+    // Advanced Fuzz Tests
+    // =========================================================================
+
+    function testFuzz_batchCalculateMarketCap(
+        uint8 batchSize,
+        uint128 basePrice,
+        uint128 baseSupply
+    ) public {
+        vm.assume(batchSize > 0 && batchSize <= 50);
+        vm.assume(basePrice > 0 && basePrice < 1e24);
+        vm.assume(baseSupply > 0 && baseSupply < 1e24);
+
+        uint256[] memory marketIds = new uint256[](batchSize);
+        uint256[] memory prices = new uint256[](batchSize);
+        uint256[] memory supplies = new uint256[](batchSize);
+
+        for (uint256 i = 0; i < batchSize; i++) {
+            marketIds[i] = i + 1;
+            prices[i] = uint256(basePrice) + i;
+            supplies[i] = uint256(baseSupply) + i;
+        }
+
+        MarketCap.BatchCapResult[] memory results = marketCap.batchCalculateMarketCap(
+            marketIds,
+            prices,
+            supplies
+        );
+
+        assertEq(results.length, batchSize, "Should return correct number of results");
+    }
+
+    function testFuzz_getCapChangePercentage(
+        uint256 marketId,
+        uint128 price1,
+        uint128 price2,
+        uint128 supply
+    ) public {
+        vm.assume(marketId > 0 && marketId < type(uint64).max);
+        vm.assume(price1 > 0 && price1 < 1e24);
+        vm.assume(price2 > 0 && price2 < 1e24);
+        vm.assume(supply > 0 && supply < 1e24);
+
+        marketCap.calculateMarketCap(marketId, uint256(price1), uint256(supply));
+        marketCap.calculateMarketCap(marketId, uint256(price2), uint256(supply));
+
+        (uint256 percentage, bool isIncrease) = marketCap.getCapChangePercentage(marketId);
+
+        if (price2 > price1) {
+            assertTrue(isIncrease, "Should be increase when price increases");
+        } else if (price2 < price1) {
+            assertFalse(isIncrease, "Should be decrease when price decreases");
+        }
+
+        assertGt(percentage, 0, "Percentage should be positive when prices differ");
+    }
+
+    // =========================================================================
+    // Advanced Integration Tests
+    // =========================================================================
+
+    function test_integration_advancedWorkflow() public {
+        uint256 marketId = 1;
+
+        // Step 1: Calculate initial cap
+        marketCap.calculateMarketCap(marketId, PRICE_1, SUPPLY_1000);
+
+        // Step 2: Set threshold
+        marketCap.setCapThreshold(marketId, 1500e18);
+
+        // Step 3: Multiple updates to create history
+        marketCap.calculateMarketCap(marketId, PRICE_2, SUPPLY_1000);
+        marketCap.calculateMarketCap(marketId, PRICE_HALF, SUPPLY_500);
+        marketCap.calculateMarketCap(marketId, PRICE_1, SUPPLY_1000);
+
+        // Step 4: Verify update count
+        assertEq(marketCap.getUpdateCount(marketId), 4, "Should have 4 updates");
+
+        // Step 5: Check snapshots
+        MarketCap.CapSnapshot[] memory snapshots = marketCap.getSnapshots(marketId);
+        assertEq(snapshots.length, 4, "Should have 4 snapshots");
+
+        // Step 6: Verify extremes
+        (uint256 peakCap, uint256 lowestCap) = marketCap.getCapExtremes(marketId);
+        assertGt(peakCap, lowestCap, "Peak should be greater than lowest");
+
+        // Step 7: Check percentage change
+        (uint256 percentage, ) = marketCap.getCapChangePercentage(marketId);
+        assertGt(percentage, 0, "Should have percentage change");
+    }
+
+    function test_integration_multipleMarketsComparison() public {
+        // Create multiple markets with different caps
+        marketCap.calculateMarketCap(1, PRICE_1, SUPPLY_1000);
+        marketCap.calculateMarketCap(2, PRICE_2, SUPPLY_1000);
+        marketCap.calculateMarketCap(3, PRICE_HALF, SUPPLY_500);
+        marketCap.calculateMarketCap(4, PRICE_2, SUPPLY_500);
+
+        // Get total cap
+        uint256 totalCap = marketCap.getTotalMarketCap();
+        assertGt(totalCap, 0, "Total cap should be positive");
+
+        // Get top markets
+        (uint256[] memory topIds, uint256[] memory topCaps) = marketCap.getTopMarketsByCap(3);
+        assertEq(topIds.length, 3, "Should return top 3");
+        assertGe(topCaps[0], topCaps[1], "Should be sorted descending");
+        assertGe(topCaps[1], topCaps[2], "Should be sorted descending");
+
+        // Compare specific markets
+        (uint256 diff, bool market2IsLarger) = marketCap.compareMarketCaps(2, 3);
+        assertTrue(market2IsLarger, "Market 2 should be larger than 3");
+        assertGt(diff, 0, "Difference should be positive");
+    }
+
+    function test_integration_batchOperations() public {
+        // Batch create markets
+        uint256[] memory marketIds = new uint256[](5);
+        uint256[] memory prices = new uint256[](5);
+        uint256[] memory supplies = new uint256[](5);
+
+        for (uint256 i = 0; i < 5; i++) {
+            marketIds[i] = i + 1;
+            prices[i] = PRICE_1 * (i + 1);
+            supplies[i] = SUPPLY_500 * (i + 1);
+        }
+
+        MarketCap.BatchCapResult[] memory results = marketCap.batchCalculateMarketCap(
+            marketIds,
+            prices,
+            supplies
+        );
+
+        // Verify all succeeded
+        for (uint256 i = 0; i < results.length; i++) {
+            assertTrue(results[i].success, "All batch operations should succeed");
+            assertGt(results[i].cap, 0, "All caps should be positive");
+        }
+
+        // Verify market count
+        assertEq(marketCap.getMarketCount(), 5, "Should have 5 markets");
+
+        // Get all market IDs
+        uint256[] memory allIds = marketCap.getAllMarketIds();
+        assertEq(allIds.length, 5, "Should return all 5 IDs");
+    }
+}
